@@ -1,0 +1,19 @@
+[package]
+name = "serde-generic-derive"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+proc-macro = true
+path = "lib.rs"
+bench = false
+
+[dependencies]
+darling = "0.21.3"
+proc-macro2 = "1.0.103"
+quote = "1.0.42"
+syn = {version = "2.0.109", features = ["extra-traits"]}
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(exhaustive)'] }
+
