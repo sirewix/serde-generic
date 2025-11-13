@@ -87,7 +87,7 @@ where
     C::Params: HLen
         + Traverse<CollectTypeParams, Vec<String>, <C::Params as HLen>::Len, CTP>
         + Traverse<CollectTypeParamDefs, HashSet<String>, <C::Params as HLen>::Len, CTP>,
-    C::MockedReprSelf: BodyDef<C::MockedSelf, FS>,
+    <C::Mocked as SerdeGeneric>::Repr: BodyDef<C::Mocked, FS>,
 {
     fn schema() -> String {
         let mut param_list = Vec::new();
@@ -107,25 +107,18 @@ where
                 .map(|i| format!("X{i}"))
                 .collect::<Vec<_>>()
                 .join(","),
-            <C::MockedReprSelf as BodyDef<C::MockedSelf, FS>>::def(defs)
+            <<C::Mocked as SerdeGeneric>::Repr as BodyDef<C::Mocked, FS>>::def(defs)
         );
         defs.insert(def);
         <C::Params as Traverse<CollectTypeParamDefs, _, _, _>>::traverse(defs);
     }
 }
 
-impl HasSchema<Manual> for Zero {
+impl<P: PeanoNumber> HasSchema<Manual> for TypeVar<P> {
     fn schema() -> String {
-        "X0".into()
+        format!("X{}", P::NUMBER)
     }
 }
-impl<P: PeanoNumber> HasSchema<Manual> for Succ<P> {
-    fn schema() -> String {
-        format!("X{}", 1 + P::NUMBER)
-    }
-}
-
-// fn variable<N: PeanoNumber>() -> String { format!("X{}", N::NUMBER) }
 
 trait BodyDef<C, FS> {
     fn def(defs: &mut HashSet<String>) -> String;

@@ -20,6 +20,11 @@ fn mk_idx(i: usize) -> TokenStream2 {
     )
 }
 
+fn mk_type_var(i: usize) -> TokenStream2 {
+    let idx = mk_idx(i);
+    quote! {::serde_generic::TypeVar<#idx>}
+}
+
 #[proc_macro_derive(SerdeGeneric, attributes(serde))]
 pub fn derive_serde_generic(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -35,7 +40,7 @@ pub fn derive_serde_generic(input: TokenStream) -> TokenStream {
         .generics
         .type_params()
         .enumerate()
-        .map(|(i, _)| mk_idx(i));
+        .map(|(i, _)| mk_type_var(i));
     let cx = serde::Ctxt::new();
     let container_attrs = serde::attr::Container::from_ast(&cx, &input);
 
@@ -54,7 +59,7 @@ pub fn derive_serde_generic(input: TokenStream) -> TokenStream {
     let ((repr, other_impls), to_repr, from_repr) = match &input.data {
         Data::Struct(str) => match &str.fields {
             Fields::Named(fields) => {
-                let struct_common = asdf_struct(
+                let struct_common = for_a_struct(
                     &cx,
                     &container_default,
                     rename_rules,
@@ -85,7 +90,7 @@ pub fn derive_serde_generic(input: TokenStream) -> TokenStream {
                 )
             }
             Fields::Unnamed(fields) => {
-                let struct_common = asdf_struct(
+                let struct_common = for_a_struct(
                     &cx,
                     &container_default,
                     rename_rules,
@@ -125,7 +130,7 @@ pub fn derive_serde_generic(input: TokenStream) -> TokenStream {
                 quote! {Self},
             ),
         },
-        Data::Enum(variants) => asdf_enum(
+        Data::Enum(variants) => for_an_enum(
             &cx,
             &container_default,
             rename_rules,
@@ -141,8 +146,7 @@ pub fn derive_serde_generic(input: TokenStream) -> TokenStream {
       #[automatically_derived]
       impl #impl_generics  ::serde_generic::SerdeGeneric for #type_ident #ty_generics #where_clause {
         type Params = #type_params;
-        type MockedSelf = #type_ident <#(#mock_params,)*>;
-        type MockedReprSelf = <Self::MockedSelf as ::serde_generic::SerdeGeneric>::Repr;
+        type Mocked = #type_ident <#(#mock_params,)*>;
         type Repr = #repr;
         fn to_repr(self) -> Self::Repr { #to_repr }
         fn from_repr(repr: Self::Repr) -> Self { #from_repr }
@@ -156,7 +160,7 @@ pub fn derive_serde_generic(input: TokenStream) -> TokenStream {
     res
 }
 
-fn asdf_struct<'a>(
+fn for_a_struct<'a>(
     cx: &'a Ctxt,
     container_default: &'a serde::attr::Default,
     rename_rules: serde::attr::RenameAllRules,
@@ -206,7 +210,7 @@ trait GenericCombinator: Sized {
 }
 impl<X: Sized> GenericCombinator for X {}
 
-fn asdf_enum<'a>(
+fn for_an_enum<'a>(
     cx: &'a Ctxt,
     container_default: &'a serde::attr::Default,
     rename_rules: serde::attr::RenameAllRules,
